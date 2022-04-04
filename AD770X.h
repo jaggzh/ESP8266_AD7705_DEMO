@@ -16,11 +16,27 @@
  * Initial version 1.0 3/2011
  * Updated 1.1 4/2012
  */
+/*
+ * User #defines:
+ *   #define AD770X_DISABLE_CS  to ignore given CS pin
+ *   #define AD770X_DISABLE_RST  to ignore RST pin
+ */
 #ifndef AD770X_H
 #define AD770X_H
 
+#include "adc-settings.h"
+
 #include <Arduino.h>
 #include <SPI.h> // Only needed for Arduino 1.6.5 and earlier
+
+#ifdef AD770X_DISABLE_CS
+	#define AD770X_CS_LOW()
+	#define AD770X_CS_HIGH()
+#else
+	#define AD770X_CS_LOW()  digitalWrite(pinCS, LOW);
+	#define AD770X_CS_HIGH() digitalWrite(pinCS, HIGH);
+#endif
+
 
 class AD770X {
 public:
@@ -78,6 +94,7 @@ public:
 
 
     //AD770X(double vref);
+    AD770X(double vref, int _pinMOSI, int _pinMISO, int _pinSPIClock);
     AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIClock, int _pinRST);
     void setNextOperation(byte reg, byte channel, byte readWrite);
     void writeClockRegister(byte CLKDIS, byte CLKDIV, byte outputUpdateRate);
@@ -96,6 +113,7 @@ private:
     int pinSPIClock;    //SCK
     int pinCS;          //CS
     int pinRST;         //RESET
+    unsigned int flags; //
     double VRef;
     unsigned int readADResult();
 };
