@@ -86,6 +86,7 @@ double AD770X::readADResult(byte channel, float refOffset) {
 }
 
 bool AD770X::dataReady(byte channel) {
+	/* return true; */
     setNextOperation(REG_CMM, channel, 1);
 
     AD770X_CS_LOW();
@@ -132,7 +133,14 @@ AD770X::AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIC
 	#endif
 
     SPI.begin();
-    SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE2));
+	#ifdef AD770X_DISABLE_CS
+		#warning "This may be wrong. Lib default was SPI_MODE2."
+		SPI.beginTransaction(SPISettings(10000, MSBFIRST, SPI_MODE3));
+		/* SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE3)); */
+	#else
+		#error "In testing this branch, we should not be here."
+		SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE2));
+	#endif
     
     AD770X_CS_HIGH();
 }
