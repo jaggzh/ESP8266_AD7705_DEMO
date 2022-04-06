@@ -97,6 +97,7 @@ public:
     AD770X(double vref, int _pinMOSI, int _pinMISO, int _pinSPIClock);
     AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIClock, int _pinRST);
     void setNextOperation(byte reg, byte channel, byte readWrite);
+	byte readClockRegister(byte channel);
     void writeClockRegister(byte CLKDIS, byte CLKDIV, byte outputUpdateRate);
     void writeSetupRegister(byte operationMode, byte gain, byte unipolar, byte buffered, byte fsync);
     unsigned int readADResultRaw(byte channel);

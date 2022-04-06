@@ -34,7 +34,26 @@ void AD770X::setNextOperation(byte reg, byte channel, byte readWrite) {
 	AD770X_CS_HIGH();
 }
 
-//Clock Register
+//Clock Register - Read (Reading not vital for basic operation of lib)
+//   7      6       5        4        3        2      1      0
+//ZERO(0) ZERO(0) ZERO(0) CLKDIS(0) CLKDIV(0) CLK(1) FS1(0) FS0(1)
+//
+//CLKDIS: master clock disable bit
+//CLKDIV: clock divider bit
+
+byte AD770X::readClockRegister(byte channel) {
+    setNextOperation(REG_CLOCK, channel, 1); // 1=read
+    AD770X_CS_LOW();
+    byte r = SPI.transfer(0x0);
+    AD770X_CS_HIGH();
+    Serial.print("Clock register [");
+    Serial.print(channel);
+    Serial.print("]: ");
+    Serial.println(r);
+   	return r;
+}
+
+//Clock Register - Write
 //   7      6       5        4        3        2      1      0
 //ZERO(0) ZERO(0) ZERO(0) CLKDIS(0) CLKDIV(0) CLK(1) FS1(0) FS0(1)
 //
@@ -86,7 +105,6 @@ double AD770X::readADResult(byte channel, float refOffset) {
 }
 
 bool AD770X::dataReady(byte channel) {
-	/* return true; */
     setNextOperation(REG_CMM, channel, 1);
 
     AD770X_CS_LOW();
@@ -98,7 +116,7 @@ bool AD770X::dataReady(byte channel) {
 
 void AD770X::reset() {
     AD770X_CS_LOW();
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 33; i++){
         SPI.transfer(0xff);
     }
         
@@ -152,7 +170,11 @@ void AD770X::init(byte channel, byte clkDivider, byte polarity, byte gain, byte 
     setNextOperation(REG_SETUP, channel, 0);
     writeSetupRegister(MODE_SELF_CAL, gain, polarity, 0, 0);
 
+    int i=0;
     while (!dataReady(channel)) {
+    	Serial.print("!dataready: ");
+    	Serial.println(i);
+    	i++;
     };
 }
 
