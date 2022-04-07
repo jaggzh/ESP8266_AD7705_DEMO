@@ -19,6 +19,7 @@
  */
 
 #include "AD770X.h"
+#include "printutils.h"
 
 //write communication register
 //   7        6      5      4      3      2      1      0
@@ -92,7 +93,7 @@ unsigned int AD770X::readADResult() {
 }
 
 unsigned int AD770X::readADResultRaw(byte channel) {
-    while (!dataReady(channel)) { };
+    while (!dataReady(channel)) { yield(); };
     setNextOperation(REG_DATA, channel, 1);
 
     return readADResult();
@@ -138,7 +139,7 @@ bool AD770X::dataReady(byte channel) {
 
 void AD770X::reset() {
     AD770X_CS_LOW();
-    for (int i = 0; i < 33; i++){
+    for (int i = 0; i < 1000; i++){
         SPI.transfer(0xff);
     }
         
@@ -186,6 +187,7 @@ AD770X::AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIC
 }
 
 void AD770X::init(byte channel, byte clkDivider, byte polarity, byte gain, byte updRate) {
+	spl("init(...)");
     setNextOperation(REG_CLOCK, channel, 0);
     writeClockRegister(0, clkDivider, updRate);
 
@@ -207,7 +209,7 @@ void AD770X::init(byte channel, byte clkDivider, byte polarity, byte gain, byte 
 	#else
 		int i=0;
 		while (!dataReady(channel)) {
-			if (!(i%10000)) {
+			if (!(i%2000)) {
 				Serial.print("!dataready [ch:");
 				Serial.print(channel);
 				Serial.print("]: ");
@@ -216,6 +218,7 @@ void AD770X::init(byte channel, byte clkDivider, byte polarity, byte gain, byte 
 			i++;
 		};
 	#endif
+	spl("/init(...)");
 }
 
 void AD770X::init(byte channel) {

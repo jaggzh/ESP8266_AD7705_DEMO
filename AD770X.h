@@ -33,6 +33,7 @@
 	#define AD770X_CS_LOW()
 	#define AD770X_CS_HIGH()
 #else
+	#error "During testing of this branch we are only doing non-CS communications"
 	#define AD770X_CS_LOW()  digitalWrite(pinCS, LOW);
 	#define AD770X_CS_HIGH() digitalWrite(pinCS, HIGH);
 #endif
