@@ -86,8 +86,8 @@ public:
     static const byte GAIN_64 = 0x6;
     static const byte GAIN_128 = 0x7;
 
-    static const byte UNIPOLAR = 0x1;
-    static const byte BIPOLAR = 0x0;
+    static const byte UNIPOLAR = 0x0;
+    static const byte BIPOLAR = 0x1;
 
     static const byte CLK_DIV_1 = 0x1;
     static const byte CLK_DIV_2 = 0x2;
@@ -97,6 +97,8 @@ public:
     AD770X(double vref, int _pinMOSI, int _pinMISO, int _pinSPIClock);
     AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIClock, int _pinRST);
     void setNextOperation(byte reg, byte channel, byte readWrite);
+	byte readRegSetup(byte channel);
+	bool calDoneSetup(byte channel); // calibration done
 	byte readClockRegister(byte channel);
     void writeClockRegister(byte CLKDIS, byte CLKDIV, byte outputUpdateRate);
     void writeSetupRegister(byte operationMode, byte gain, byte unipolar, byte buffered, byte fsync);

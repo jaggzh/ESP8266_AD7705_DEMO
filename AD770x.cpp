@@ -23,8 +23,6 @@
 //write communication register
 //   7        6      5      4      3      2      1      0
 //0/DRDY(0) RS2(0) RS1(0) RS0(0) R/W(0) STBY(0) CH1(0) CH0(0)
-
-
 void AD770X::setNextOperation(byte reg, byte channel, byte readWrite) {
     byte r = 0;
     r = reg << 4 | readWrite << 3 | channel;
@@ -104,6 +102,30 @@ double AD770X::readADResult(byte channel, float refOffset) {
     return readADResultRaw(channel) * 1.0 / 65536.0 * VRef - refOffset;
 }
 
+/* The second method for determining when calibration is complete is to monitor
+ * the MD1 and MD0 bits of the setup register. When these bits return to 0
+ * following a calibration command, the calibration sequence is complete */
+byte AD770X::readRegSetup(byte channel) {
+	/* Table 14. Setup Register
+	 * MD1 (0), MD0 (0), G2 (0), G1 (0), G0 (0), B/U (0), BUF (0), FSYNC (1), */
+    setNextOperation(REG_SETUP, channel, 1);
+    AD770X_CS_LOW();
+    byte r = SPI.transfer(0x0);
+    AD770X_CS_HIGH();
+    return r;
+}
+bool AD770X::calDoneSetup(byte channel) {
+	/* Calibration completion can be determined by the Data Ready
+	 * bits, from the communications register, OR by this method,
+	 * which checks the Setup Register's MD1 and MD0 bits, which
+	 * will drop to 0 when calibration is done.
+	 * The docs say this method informs us sooner that calibration
+	 * is done, but that they don't indicate when data is actually
+	 * ready */
+	byte r = readRegSetup(channel);
+    return ((r & (128 | 64)) == 0x0); // MD1=128, MD0=64
+}
+
 bool AD770X::dataReady(byte channel) {
     setNextOperation(REG_CMM, channel, 1);
 
@@ -153,7 +175,7 @@ AD770X::AD770X(double vref, int _pinCS, int _pinMOSI, int _pinMISO, int _pinSPIC
     SPI.begin();
 	#ifdef AD770X_DISABLE_CS
 		#warning "This may be wrong. Lib default was SPI_MODE2."
-		SPI.beginTransaction(SPISettings(10000, MSBFIRST, SPI_MODE3));
+		SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE3));
 		/* SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE3)); */
 	#else
 		#error "In testing this branch, we should not be here."
@@ -170,12 +192,30 @@ void AD770X::init(byte channel, byte clkDivider, byte polarity, byte gain, byte 
     setNextOperation(REG_SETUP, channel, 0);
     writeSetupRegister(MODE_SELF_CAL, gain, polarity, 0, 0);
 
-    int i=0;
-    while (!dataReady(channel)) {
-    	Serial.print("!dataready: ");
-    	Serial.println(i);
-    	i++;
-    };
+	#ifdef INIT_FAST_CAL_RESULT // WIP: cal speed the same, but this method returns faster
+	    int i;
+	    i=0;
+	    byte r;
+	    do {
+	    	r = readRegSetup(channel);
+	    	Serial.print("!setup Reg Cal Result [");
+	    	Serial.print(i);
+	    	Serial.print("]: ");
+	    	Serial.println(r);
+	    	i++;
+		} while ((r & (128 | 64)) != 0); // testing if calibration is done
+	#else
+		int i=0;
+		while (!dataReady(channel)) {
+			if (!(i%10000)) {
+				Serial.print("!dataready [ch:");
+				Serial.print(channel);
+				Serial.print("]: ");
+				Serial.println(i);
+			}
+			i++;
+		};
+	#endif
 }
 
 void AD770X::init(byte channel) {
